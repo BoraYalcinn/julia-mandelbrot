@@ -1,3 +1,5 @@
+using SimpleDirectMediaLayer.LibSDL2
+
 function mandelbrot(c::Complex, max_iterations::Int)
     z = 0.0 + 0.0im
     for i in 1:max_iterations
@@ -49,4 +51,53 @@ function write_ppm(file_name,frame_buffer,max_iterations)
             end
         end
     end
+end
+
+function buffer_to_pixel(frame_buffer,max_iterations)
+    height, width = size(frame_buffer)
+    pixels = Vector{UInt32}(undef, width * height)
+    for i in 1:width
+        for j in 1:height
+            r, g, b = color_label(frame_buffer[j, i], max_iterations)
+            pixels[(j - 1) * width + i] = 0xFF000000 | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b)
+        end
+    end
+    return pixels
+end
+
+function main()
+    if SDL_Init(SDL_INIT_VIDEO) != 0
+        error("SDL initialization failed: $(unsafe_string(SDL_GetError()))")
+    end
+    width, height = 900,600
+    buffer = generate_mandelbrot_buffer(-2.0, -1.0, 1.0, 1.0, width, height, 100)
+    pixels = buffer_to_pixel(buffer, 100)
+    window = SDL_CreateWindow("Mandelbrot",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,width,height,SDL_WINDOW_SHOWN)
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED)
+    texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, width, height)
+    try
+        running = true
+        event_ref = Ref{SDL_Event}()
+        while running
+            while Bool(SDL_PollEvent(event_ref))
+                evt = event_ref[]
+                if evt.type == SDL_QUIT
+                    running = false
+                end
+            end
+            SDL_UpdateTexture(texture, C_NULL, pixels, width * 4)
+            SDL_RenderClear(renderer)
+            SDL_RenderCopy(renderer, texture, C_NULL, C_NULL)
+            SDL_RenderPresent(renderer)
+        end
+    finally
+        SDL_DestroyRenderer(renderer)
+        SDL_DestroyTexture(texture)
+        SDL_DestroyWindow(window)
+        SDL_Quit()
+    end
+end
+
+if abspath(PROGRAM_FILE) == @__FILE__
+    main()
 end
