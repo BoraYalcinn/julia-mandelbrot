@@ -81,14 +81,16 @@ function zoom_towards_mouse(gaze_x, gaze_y, zoom, mouse_x, mouse_y, factor, widt
     return (new_gaze_x, new_gaze_y, zoom * factor)
 end
 
+function iterations_for_zoom(zoom)
+    return max(100,round(Int,100 + 50 * log2(zoom)))
+end
+
 function main()
     if SDL_Init(SDL_INIT_VIDEO) != 0
         error("SDL initialization failed: $(unsafe_string(SDL_GetError()))")
     end
     println(Threads.nthreads())
     width, height = 900,600
-    buffer = generate_mandelbrot_buffer(-2.0, -1.0, 1.0, 1.0, width, height, 100)
-    pixels = buffer_to_pixel(buffer, 100)
     window = SDL_CreateWindow("Mandelbrot",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,width,height,SDL_WINDOW_SHOWN)
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED)
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, width, height)
@@ -123,9 +125,10 @@ function main()
             end
 
             if zoom_action == true
+                max_iterations = iterations_for_zoom(zoom)
                 xmin, ymin, xmax, ymax = zoom_mandelbrot(gaze_x, gaze_y, zoom, width / height)
-                buffer = generate_mandelbrot_buffer(xmin, ymin, xmax, ymax, width, height, 100)
-                pixels = buffer_to_pixel(buffer, 100)
+                buffer = generate_mandelbrot_buffer(xmin, ymin, xmax, ymax, width, height, max_iterations)
+                pixels = buffer_to_pixel(buffer, max_iterations)
                 SDL_UpdateTexture(texture, C_NULL, pixels, width * 4)
                 zoom_action = false
             end
