@@ -11,15 +11,15 @@ function mandelbrot(c::Complex, max_iterations::Int)
     return max_iterations
 end
 
-function color_label(n::Int,max_iterations::Int)
+function color_label(n::Int,max_iterations::Int,P::Int=32)
     if n == max_iterations
         return (0,0,0)
     end
-    t = n / max_iterations
+    t = mod(n,P) / P
 
-    r = round(Int, 255 * 9 * (1 - t) * t^3)
-    g = round(Int, 255 * 15 * (1 - t)^2 * t^2)
-    b = round(Int, 255 * 8.5 * (1 - t)^3 * t)
+    r = round(Int, 255 * (0.5 + 0.5 *cos(2*π*t)))
+    g = round(Int, 255 * (0.5 + 0.5 *cos(2*π*(t+0.33))))
+    b = round(Int, 255 * (0.5 + 0.5 *cos(2*π*(t+0.67))))
 
     return (r, g, b)
 end
@@ -46,7 +46,7 @@ function write_ppm(file_name,frame_buffer,max_iterations)
 
         for j in 1:height
             for i in 1:width
-                r, g, b = color_label(frame_buffer[j, i], max_iterations)
+                r, g, b = color_label(frame_buffer[j, i], max_iterations,32)
                 println(io, r, " ", g, " ", b)
             end
         end
@@ -58,7 +58,7 @@ function buffer_to_pixel(frame_buffer,max_iterations)
     pixels = Vector{UInt32}(undef, width * height)
     for i in 1:width
         for j in 1:height
-            r, g, b = color_label(frame_buffer[j, i], max_iterations)
+            r, g, b = color_label(frame_buffer[j, i], max_iterations,32)
             pixels[(j - 1) * width + i] = 0xFF000000 | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b)
         end
     end
