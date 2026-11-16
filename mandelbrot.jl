@@ -110,6 +110,9 @@ function main()
 
             SDL_GetMouseState(mouse_x, mouse_y)
             keys = SDL_GetKeyboardState(C_NULL)
+            if unsafe_load(keys, Int(SDL_SCANCODE_ESCAPE) + 1) != 0
+                running = false
+            end
             if unsafe_load(keys, Int(SDL_SCANCODE_W) + 1) != 0
                 gaze_x, gaze_y, zoom = zoom_towards_mouse(gaze_x, gaze_y, zoom, mouse_x[], mouse_y[], 1.05, width, height)
                 zoom_action = true
