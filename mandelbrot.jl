@@ -56,7 +56,7 @@ end
 function buffer_to_pixel(frame_buffer,max_iterations)
     height, width = size(frame_buffer)
     pixels = Vector{UInt32}(undef, width * height)
-    for i in 1:width
+    Threads.@threads for i in 1:width
         for j in 1:height
             r, g, b = color_label(frame_buffer[j, i], max_iterations,32)
             pixels[(j - 1) * width + i] = 0xFF000000 | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b)
