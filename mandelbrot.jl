@@ -26,9 +26,9 @@ end
 
 function generate_mandelbrot_buffer(Xmin, Ymin, Xmax, Ymax, width, height, max_iterations)
     frame_buffer = zeros(Int, height, width)
-    Threads.@threads for i in 1:width
+    Threads.@threads :greedy for i in 1:width
         x = Xmin + (Xmax - Xmin) * (i - 1) / (width - 1)
-        Threads.@threads for j in 1:height
+        for j in 1:height
             y = Ymax - (Ymax - Ymin) * (j - 1) / (height - 1)
             frame_buffer[j, i] = mandelbrot(Complex(x, y), max_iterations)
         end
@@ -56,7 +56,7 @@ end
 function buffer_to_pixel(frame_buffer,max_iterations)
     height, width = size(frame_buffer)
     pixels = Vector{UInt32}(undef, width * height)
-    Threads.@threads for i in 1:width
+    Threads.@threads :greedy for i in 1:width
         for j in 1:height
             r, g, b = color_label(frame_buffer[j, i], max_iterations,32)
             pixels[(j - 1) * width + i] = 0xFF000000 | (UInt32(r) << 16) | (UInt32(g) << 8) | UInt32(b)
@@ -90,7 +90,7 @@ function main()
         error("SDL initialization failed: $(unsafe_string(SDL_GetError()))")
     end
     println(Threads.nthreads())
-    width, height = 900,600
+    width, height = 900,800
     window = SDL_CreateWindow("Mandelbrot",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,width,height,SDL_WINDOW_SHOWN)
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED)
     texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, width, height)
@@ -127,8 +127,8 @@ function main()
             if zoom_action == true
                 max_iterations = iterations_for_zoom(zoom)
                 xmin, ymin, xmax, ymax = zoom_mandelbrot(gaze_x, gaze_y, zoom, width / height)
-                buffer = generate_mandelbrot_buffer(xmin, ymin, xmax, ymax, width, height, max_iterations)
-                pixels = buffer_to_pixel(buffer, max_iterations)
+                @time buffer = generate_mandelbrot_buffer(xmin, ymin, xmax, ymax, width, height, max_iterations)
+                @time pixels = buffer_to_pixel(buffer, max_iterations)
                 SDL_UpdateTexture(texture, C_NULL, pixels, width * 4)
                 zoom_action = false
             end
